@@ -1,34 +1,81 @@
-"""youtube downloader"""
+""" Youtube Downloader """
 
-from time import sleep
+# from time import sleep
+import requests
+from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-MAIN_URL = 'https://www.youtube.com/'
 
-KEYWORD = input('Enter keywords to search:  ')
+search = input("enter your search: ")
+r = requests.get("https://www.youtube.com/results?search_query=" + search)
 
-SUB_URL = MAIN_URL + "results?search_query=" + KEYWORD.replace(" ", "+")
+soup = BeautifulSoup(r.content, "html.parser")
 
-DRIVER = webdriver.Chrome()
-DRIVER.get(SUB_URL)
-print("Opened results page")
-sleep(1)
+results = soup.find_all("h3", {"class": "yt-lockup-title"})
 
-SEARCH_BOX = DRIVER.find_element_by_id('search')
-SEARCH_BOX.send_keys(KEYWORD)
-print("keyword entered")
-sleep(1)
+COUNT = 1
+VIDEOS = []
+MY_LIST = []
 
-SEARCH_BOX = DRIVER.find_element_by_id('search-icon-legacy')
-SEARCH_BOX.click()
-sleep(20)
+for items in results:
+    MY_LIST.append(items.a.text)
+    VIDEOS.append(items.a["href"])
 
-ITEMS_ON_PAGE = DRIVER.find_element_by_id('video-title').get_attribute('title')
-print(ITEMS_ON_PAGE)
+print("List Of Videos Found")
+print("=================================")
+for i in MY_LIST:
+    print(str(COUNT) + ')' + i)
+    COUNT += 1
 
-print("Done")
+print("================================")
+choice = int(input("Enter Your Choice: "))
 
-input('Press anything to quit bitch')
-DRIVER.quit()
+output = "https://youtube.com" + VIDEOS[choice-1]
 
-print("Finished")
+driver = webdriver.Chrome()
+driver.get("http://en.savefrom.net/")
+
+try:
+    submit = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "sf_submit"))
+    )
+    link_box = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "sf_url"))
+    )
+    link_box.send_keys(output)
+    print("entered address")
+    submit.click()
+    print("submit button clicked")
+
+    try:
+        drop_box = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "drop-down-box"))
+        )
+
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        quality = soup.find("div", {"class":"drop-down-box"})
+        itms = quality.find_all("a")
+        lst = []
+        vid = []
+        for it in itms:
+            lst.append(it.text)
+            vid.append(it["href"])
+
+        ct = 1
+        for i in lst:
+            print(str(ct)+")"+i)
+            ct += 1
+
+        print("===============================")
+        choice = int(input("Enter your choice: "))
+        print("===============================")
+        print("Your video is being downloaded...............")
+        driver.get(vid[choice-1])
+
+    finally:
+        print("done!")
+finally:
+    print("submit button clicked")
